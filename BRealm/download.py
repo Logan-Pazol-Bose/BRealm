@@ -146,8 +146,8 @@ def download(frameworks, githubRelease):
     extractFilesThatSatisfyPred(file, pred)
     
     for framework in frameworks:
-        shutil.rmtree(framework)
-        os.rename("Carthage/Build/iOS/" + framework, framework)
+        shutil.rmtree("../" + framework)
+        os.rename("Carthage/Build/iOS/" + framework, "../" + framework)
 
 #---------------------------------------------------------
 
