@@ -1,7 +1,11 @@
 import urllib2
 import zipfile
+import json
 import math
 import os
+
+def MANIFEST():
+    return "manifest.json"
 
 def BASELOCALHEADERSIZE():
     return 30
@@ -121,19 +125,38 @@ def extractFilesThatSatisfyPred(zipFile, pred):
         if pred(name):
             zipFile.extract(name)
 
-def testPred(filename):
-    return "iOS" in filename and not "dSYM" in filename
+def download(frameworks, githubRelease):
+    httpFile = HttpFile(githubRelease)
+    
+    def pred(filename):
+        if "iOS" in filename and not "dSYM" in filename:
+            for framework in frameworks:
+                if framework in filename:
+                    return True
+        return False
+    
+    print("Downloading zip dir")
+    file = zipfile.ZipFile(httpFile)
+    
+    print("Downloading block that satisfies predicate")
+    loadZipRangeForItemsSatisfyingPred(file, httpFile, pred)
+    
+    print("Extracting files")
+    extractFilesThatSatisfyPred(file, pred)
+    
+    for framework in frameworks:
+        os.rename("Carthage/Build/iOS/" + framework, framework)
 
-httpFile = HttpFile("https://github.com/realm/realm-cocoa/releases/download/v3.7.2/Carthage.framework.zip")
+#---------------------------------------------------------
 
-print("Downloading zip dir")
-file = zipfile.ZipFile(httpFile)
+manifest = json.loads(open(MANIFEST()).read())
+frameworks = manifest["frameworks"]
 
-print("Downloading block that satisfies predicate")
-loadZipRangeForItemsSatisfyingPred(file, httpFile, testPred)
+toDownload = []
+for framework in frameworks:
+    if not os.path.isdir(framework):
+        toDownload.append(framework)
 
-print("Extracting files")
-extractFilesThatSatisfyPred(file, testPred)
+if len(toDownload) > 0:
+    download(toDownload, manifest["release"])
 
-os.rename("Carthage/Build/iOS/Realm.framework", "Realm.framework")
-os.rename("Carthage/Build/iOS/RealmSwift.framework", "RealmSwift.framework")

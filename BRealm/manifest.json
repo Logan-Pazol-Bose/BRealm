@@ -1,0 +1,6 @@
+{
+    
+    "release": "https://github.com/realm/realm-cocoa/releases/download/v3.7.2/Carthage.framework.zip",
+    "frameworks": ["Realm.framework", "RealmSwift.framework"]
+    
+}
