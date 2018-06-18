@@ -2,7 +2,6 @@ import urllib2
 import zipfile
 import math
 import os
-import shutil
 
 def BASELOCALHEADERSIZE():
     return 30
@@ -135,9 +134,6 @@ loadZipRangeForItemsSatisfyingPred(file, httpFile, testPred)
 
 print("Extracting files")
 extractFilesThatSatisfyPred(file, testPred)
-
-shutil.rmtree("Realm.framework")
-shutil.rmtree("RealmSwift.framework")
 
 os.rename("Carthage/Build/iOS/Realm.framework", "Realm.framework")
 os.rename("Carthage/Build/iOS/RealmSwift.framework", "RealmSwift.framework")
