@@ -1,5 +1,6 @@
 import urllib2
 import zipfile
+import shutil
 import json
 import math
 import os
@@ -145,6 +146,7 @@ def download(frameworks, githubRelease):
     extractFilesThatSatisfyPred(file, pred)
     
     for framework in frameworks:
+        shutil.rmtree(framework)
         os.rename("Carthage/Build/iOS/" + framework, framework)
 
 #---------------------------------------------------------
@@ -154,7 +156,7 @@ frameworks = manifest["frameworks"]
 
 toDownload = []
 for framework in frameworks:
-    if not os.path.isdir(framework):
+    if not os.path.isfile(framework + "/Info.plist"):
         toDownload.append(framework)
 
 if len(toDownload) > 0:
