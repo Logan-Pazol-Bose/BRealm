@@ -4,12 +4,22 @@ import math
 import os
 import shutil
 
-class HttpFile(object):
+def BASELOCALHEADERSIZE():
+    return 30
+
+def DATADESCRIPTORSIZE():
+    return 12
+
+class DataRequester(object):
     def __init__(self, url):
-        self.url = url
-        self.offset = 0
+        self.url   = url
         self._size = -1
-        self._o = -1
+
+    def dataForRange(self, start, end):
+        request = urllib2.Request(self.url)
+        request.headers['Range'] = "bytes=%s-%s" % (start, end)
+
+        return urllib2.urlopen(request).read()
 
     def size(self):
         if self._size < 0:
@@ -17,13 +27,39 @@ class HttpFile(object):
             self._size = int(f.headers["Content-length"])
         return self._size
 
-    def readRange(self, start, end):
-        req = urllib2.Request(self.url)
-        req.headers['Range'] = "bytes=%s-%s" % (start, end)
-        self._f = urllib2.urlopen(req).read()
-        self._o = start
-        self._len = end - start
 
+class DataBlock(object):
+    def __init__(self):
+        self.start = 0
+        self.end   = 0
+        self.data  = ""
+    
+    def load(self, dataRequester, start, end):
+        self.start = start
+        self.end   = end
+        self.data  = dataRequester.dataForRange(start, end)
+    
+    def isRangeContainedInData(self, start, count):
+        return start >= self.start and start + count <= self.end
+
+    def dataForRange(self, start, count):
+        newStart = start    - self.start
+        newEnd   = newStart + count
+
+        return self.data[newStart:newEnd]
+
+class HttpFile(object):
+    def __init__(self, url):
+        self.dataRequester = DataRequester(url)
+        self.offset = 0
+        self.preloadedRange = DataBlock()
+
+    def size(self):
+        return self.dataRequester.size()
+
+    def preloadRange(self, start, end):
+        self.preloadedRange.load(self.dataRequester, start, end)
+    
     def read(self, count=-1):
         
         if count < 0:
@@ -32,21 +68,15 @@ class HttpFile(object):
             end = self.offset + count - 1
         
         data = ""
-        if self._o > 0:
-            if self._o <= self.offset and self._o + self._len >= end:
-                start = self.offset - self._o
-                data = self._f[start: start + count]
+        if self.preloadedRange.isRangeContainedInData(self.offset, count):
+            data = self.preloadedRange.dataForRange(self.offset, count)
         else:
-            req = urllib2.Request(self.url)
-            req.headers['Range'] = "bytes=%s-%s" % (self.offset, end)
-            f = urllib2.urlopen(req)
-            data = f.read()
+            data = self.dataRequester.dataForRange(self.offset, end)
 
-        # FIXME: should check that we got the range expected, etc.
         chunk = len(data)
-
         if count >= 0:
             assert chunk == count
+
         self.offset += chunk
         return data
 
@@ -63,35 +93,48 @@ class HttpFile(object):
     def tell(self):
         return self.offset
 
+def numberOfBytesForFile(fileInfo):
+    size    = fileInfo.compress_size
+    comment = fileInfo.comment
+    name    = fileInfo.filename
+    return size + BASELOCALHEADERSIZE() + len(name) + len(comment) + DATADESCRIPTORSIZE()
 
-http = HttpFile("https://github.com/realm/realm-cocoa/releases/download/v3.7.2/Carthage.framework.zip")
+def loadZipRangeForItemsSatisfyingPred(zipFile, httpFile, pred):
+    startOffset = float('inf')
+    endOffset   = -1
+
+    for name in zipFile.namelist():
+        if pred(name):
+            fileInfo = zipFile.getinfo(name)
+            start    = fileInfo.header_offset
+            end      = start + numberOfBytesForFile(fileInfo)
+            
+            startOffset = min(startOffset, start)
+            endOffset   = max(endOffset,   end)
+
+    # MAGIC!
+    endOffset = endOffset + 2
+
+    httpFile.preloadRange(startOffset, endOffset)
+
+def extractFilesThatSatisfyPred(zipFile, pred):
+    for name in zipFile.namelist():
+        if pred(name):
+            zipFile.extract(name)
+
+def testPred(filename):
+    return "iOS" in filename and not "dSYM" in filename
+
+httpFile = HttpFile("https://github.com/realm/realm-cocoa/releases/download/v3.7.2/Carthage.framework.zip")
 
 print("Downloading zip dir")
-f = zipfile.ZipFile(http)
+file = zipfile.ZipFile(httpFile)
 
-minOffset = float('inf')
-endOffset = -1
+print("Downloading block that satisfies predicate")
+loadZipRangeForItemsSatisfyingPred(file, httpFile, testPred)
 
-for name in f.namelist():
-    
-    info   = f.getinfo(name)
-    offset = info.header_offset
-    size   = info.compress_size
-    comment = info.comment
-    
-    if "iOS" in name and not "dSYM" in name:
-       
-        minOffset = min(minOffset, offset)
-        endOffset = max(endOffset, offset + size + 30 + len(name) + len(comment) + 13)
-
-print("Downloading required contents")
-http.readRange(minOffset, endOffset + 2)
-
-print("Extracting")
-for name in f.namelist():
-    if "iOS" in name and not "dSYM" in name:
-        print(name)
-        f.extract(name)
+print("Extracting files")
+extractFilesThatSatisfyPred(file, testPred)
 
 shutil.rmtree("Realm.framework")
 shutil.rmtree("RealmSwift.framework")
