@@ -155,6 +155,6 @@ def download(frameworks, githubRelease):
 manifest = json.loads(open(MANIFEST()).read())
 frameworks = manifest["frameworks"]
 
-if len(toDownload) > 0:
+if len(frameworks) > 0:
     download(frameworks, manifest["release"])
 
