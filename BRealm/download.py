@@ -146,7 +146,8 @@ def download(frameworks, githubRelease):
     extractFilesThatSatisfyPred(file, pred)
     
     for framework in frameworks:
-        shutil.rmtree(framework)
+        if os.path.isfile(framework):
+            shutil.rmtree(framework)
         os.rename("Carthage/Build/iOS/" + framework, framework)
 
 #---------------------------------------------------------
@@ -154,11 +155,6 @@ def download(frameworks, githubRelease):
 manifest = json.loads(open(MANIFEST()).read())
 frameworks = manifest["frameworks"]
 
-toDownload = []
-for framework in frameworks:
-    if not os.path.isfile(framework + "/Info.plist"):
-        toDownload.append(framework)
-
 if len(toDownload) > 0:
-    download(toDownload, manifest["release"])
+    download(frameworks, manifest["release"])
 
