@@ -16,6 +16,6 @@ Realm binaries
   s.ios.vendored_frameworks = '*.framework'
 
   s.preserve_paths = '**/BRealm/*'
-  s.script_phase      = { :name => 'Install', :script => 'cd BRealm/BRealm && python download.py', :execution_position => :before_compile }
+  s.prepare_command  'cd BRealm && python download.py'
 
 end
