@@ -7,15 +7,15 @@ Pod::Spec.new do |s|
 Realm binaries
                        DESC
  
-  s.homepage         = 'https://github.com/Logan-Pazol-Bose/LogansPodsContent'
+  s.homepage         = 'https://github.com/Logan-Pazol-Bose/BRealm'
   s.license          = { :type => 'MIT' }
   s.author           = { 'Logan Pazol' => 'logan_pazol@bose.com' }
-  s.source           = { :git => 'https://github.com/Logan-Pazol-Bose/LogansPodsContent.git', :tag => s.version.to_s }
+  s.source           = { :git => 'https://github.com/Logan-Pazol-Bose/BRealm', :tag => s.version.to_s }
  
   s.ios.deployment_target = '10.0'
-  s.ios.vendored_frameworks = '*.framework'
+  s.ios.vendored_frameworks = '**/BRealm/*.framework'
 
   s.preserve_paths = '**/BRealm/*'
-  s.prepare_command  'cd BRealm && python download.py'
+  s.prepare_command = 'cd BRealm && python download.py'
 
 end

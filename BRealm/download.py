@@ -150,11 +150,29 @@ def download(frameworks, githubRelease):
             shutil.rmtree(framework)
         os.rename("Carthage/Build/iOS/" + framework, framework)
 
+def linkToZip(manifest):
+    if "release" in manifest:
+        return manifest["release"]
+    else:
+        return releaseFromRepo(manifest["repo"], manifest["filenamePrefix"])
+
+def releaseFromRepo(repo, prefix):
+    response = urllib2.urlopen("https://api.github.com/repos/" + repo + "/releases/latest").read()
+    parsed = json.loads(response)
+
+    for asset in parsed["assets"]:
+        if prefix in asset["name"]:
+            return asset["browser_download_url"]
+    return ""
+
 #---------------------------------------------------------
 
 manifest = json.loads(open(MANIFEST()).read())
 frameworks = manifest["frameworks"]
 
+link = linkToZip(manifest)
+print("Downloading zip from: " + link)
+
 if len(frameworks) > 0:
-    download(frameworks, manifest["release"])
+    download(frameworks, link)
 

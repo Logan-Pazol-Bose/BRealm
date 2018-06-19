@@ -1,6 +1,7 @@
 {
     
-    "release": "https://github.com/realm/realm-cocoa/releases/download/v3.7.2/Carthage.framework.zip",
+    "repo": "realm/realm-cocoa",
+    "filenamePrefix": "Carthage",
     "frameworks": ["Realm.framework", "RealmSwift.framework"]
     
 }
